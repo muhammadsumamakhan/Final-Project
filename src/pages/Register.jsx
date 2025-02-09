@@ -1,23 +1,49 @@
-import React, { useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { auth } from '../config/firebase/config';
-import { FaEye, FaEyeSlash } from 'react-icons/fa';
-import { toast, ToastContainer } from 'react-toastify'; 
-import 'react-toastify/dist/ReactToastify.css'; 
-
+import { collection, addDoc } from "firebase/firestore";
+import { auth, db } from "../config/firebase/config";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const Register = () => {
   const fullName = useRef();
   const email = useRef();
   const password = useRef();
   const repeatPassword = useRef();
-
   const [showPassword, setShowPassword] = useState(false);
   const [showRepeatPassword, setShowRepeatPassword] = useState(false);
+  const [imageUrl, setImageUrl] = useState(""); 
 
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
-  const toggleRepeatPasswordVisibility = () => setShowRepeatPassword(!showRepeatPassword);
+  const toggleRepeatPasswordVisibility = () =>
+    setShowRepeatPassword(!showRepeatPassword);
+
+  // Cloudinary Upload Widget Function
+  const openUploadWidget = () => {
+    if (!window.cloudinary) {
+      toast.error("Cloudinary is not loaded yet. Try again later.");
+      return;
+    }
+    let myWidget = window.cloudinary.createUploadWidget(
+      {
+        cloudName: "dnak9yzfk",
+        uploadPreset: "exp-hack",
+      },
+      (error, result) => {
+        if (!error && result && result.event === "success") {
+          console.log("Upload Success:", result.info);
+          setImageUrl(result.info.secure_url);
+          toast.success("Image uploaded successfully!");
+        } else if (error) {
+          console.error("Upload Error:", error);
+          toast.error("Image upload failed!");
+        }
+      }
+    );
+    myWidget.open();
+  };
 
   const registerUser = async (e) => {
     e.preventDefault();
@@ -33,34 +59,48 @@ const Register = () => {
       return;
     }
 
-    if (userPassword.length < 6) {
-      toast.error("Password should be at least 6 characters long");
+    const passwordPattern =
+      /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{6,}$/;
+    if (!passwordPattern.test(userPassword)) {
+      toast.error(
+        "Password must be at least 6 characters, contain 1 uppercase letter, 1 number, and 1 special character."
+      );
       return;
     }
 
-    const specialCharPattern = /[!@#$%^&*(),.?":{}|<>]/;
-    if (!specialCharPattern.test(userPassword)) {
-      toast.error("Password should include at least one special character");
+    if (!imageUrl) {
+      toast.warning("Please upload a profile image.");
       return;
     }
 
     try {
-      // Step 1: Create the user with email and password
-      const signUp = await createUserWithEmailAndPassword(auth, userEmail, userPassword);
+      // Firebase Authentication (Signup)
+      const signUp = await createUserWithEmailAndPassword(
+        auth,
+        userEmail,
+        userPassword
+      );
 
-      // Step 2: Update the user's profile with the full name
+      // Update Firebase User Profile
       await updateProfile(signUp.user, {
         displayName: userName,
+        photoURL: imageUrl,
       });
 
-      console.log("User registered:", signUp.user);
-      toast.success("Registration successful!");
+      // Store user in Firestore (Collection: "users")
+      await addDoc(collection(db, "InstaUsers"), {
+        fullName: userName,
+        email: userEmail,
+        photoURL: imageUrl,
+        createdAt: new Date(),
+      });
 
-      // Clear the form fields
-      fullName.current.value = '';
-      email.current.value = '';
-      password.current.value = '';
-      repeatPassword.current.value = '';
+      toast.success("Registration successful!");
+      fullName.current.value = "";
+      email.current.value = "";
+      password.current.value = "";
+      repeatPassword.current.value = "";
+      setImageUrl("");
     } catch (err) {
       console.error("Firebase error:", err.message);
       toast.error(err.message || "Failed to register. Please try again.");
@@ -96,10 +136,28 @@ const Register = () => {
             className="border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
           />
 
+          {/* Image Upload Button */}
+          <button
+            type="button"
+            onClick={openUploadWidget}
+            className="bg-blue-600 text-white py-2 px-4 rounded-md w-full hover:bg-blue-700 transition duration-200"
+          >
+            Upload Profile Image
+          </button>
+
+          {/* Display Uploaded Image */}
+          {imageUrl && (
+            <img
+              src={imageUrl}
+              alt="Uploaded Profile"
+              className="w-32 h-32 mx-auto rounded-full mt-4"
+            />
+          )}
+
           {/* Password Field */}
           <div className="relative">
             <input
-              type={showPassword ? 'text' : 'password'}
+              type={showPassword ? "text" : "password"}
               placeholder="Password"
               ref={password}
               required
@@ -117,7 +175,7 @@ const Register = () => {
           {/* Repeat Password Field */}
           <div className="relative">
             <input
-              type={showRepeatPassword ? 'text' : 'password'}
+              type={showRepeatPassword ? "text" : "password"}
               placeholder="Repeat Password"
               ref={repeatPassword}
               required
@@ -142,7 +200,7 @@ const Register = () => {
 
           {/* Login Link */}
           <p className="text-center text-gray-600 mt-4">
-            Already have an account?{' '}
+            Already have an account?{" "}
             <Link to="/login" className="text-purple-600 hover:underline">
               Login here
             </Link>
@@ -157,4 +215,3 @@ const Register = () => {
 };
 
 export default Register;
-

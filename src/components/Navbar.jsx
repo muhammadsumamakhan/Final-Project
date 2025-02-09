@@ -1,153 +1,193 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { auth } from '../config/firebase/config';
+// import React, { useState, useEffect } from "react";
+// import { Link, useNavigate } from "react-router-dom";
+// import { onAuthStateChanged, signOut } from "firebase/auth";
+// import { auth } from "../config/firebase/config";
+
+// const Navbar = () => {
+//   const [currentUser, setCurrentUser] = useState(null);
+//   const navigate = useNavigate();
+
+//   // Check if user is authenticated
+//   useEffect(() => {
+//     const unsubscribe = onAuthStateChanged(auth, (user) => {
+//       setCurrentUser(user ? { 
+//         name: user.displayName || "User", 
+//         photo: user.photoURL || "https://i.ibb.co/DL4Sz9C/user.png" 
+//       } : null);
+//     });
+
+//     return () => unsubscribe();
+//   }, []);
+
+//   // Logout function
+//   const logoutUser = async () => {
+//     await signOut(auth);
+//     navigate("/login");
+//   };
+
+//   return (
+//     <nav className="w-full bg-white shadow-md flex justify-between items-center px-6 py-4">
+//       {/* 📌 Logo */}
+//       <h1 className="text-blue-600 text-lg font-bold">
+//         <Link to="/">ScrollLink</Link>
+//       </h1>
+
+//       {/* 🔍 Search Bar */}
+//       <div className="hidden md:block flex-1 mx-4">
+//         <input
+//           type="text"
+//           placeholder="Search something here..."
+//           className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+//         />
+//       </div>
+
+//       {/* 🧑 User Authentication Section */}
+//       {currentUser ? (
+//         <div className="flex items-center space-x-4">
+//           <img
+//             src={currentUser.photo}
+//             alt="User Avatar"
+//             className="w-10 h-10 rounded-full border border-gray-300"
+//           />
+//           <span className="text-gray-700 font-medium">{currentUser.name}</span>
+//           <button
+//             onClick={logoutUser}
+//             className="text-red-500 text-sm font-medium hover:underline"
+//           >
+//             Logout
+//           </button>
+//         </div>
+//       ) : (
+//         <Link to="/login" className="text-blue-500 font-medium hover:underline">
+//           Login
+//         </Link>
+//       )}
+//     </nav>
+//   );
+// };
+
+// export default Navbar;
+
+
+
+
+
+import React, { useState, useEffect, useCallback } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { auth } from "../config/firebase/config";
+import { FaBars, FaTimes } from "react-icons/fa";
 
 const Navbar = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false); 
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false); 
   const [currentUser, setCurrentUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
 
-  // Observe user authentication state
+  // Check if user is authenticated
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user); // Update current user
+      if (user) {
+        setCurrentUser({
+          name: user.displayName || "User",
+          photo: user.photoURL || "https://i.ibb.co/DL4Sz9C/user.png",
+        });
+      } else {
+        setCurrentUser(null);
+      }
+      setLoading(false); // Stop loading once Firebase is done checking auth
     });
-    return () => unsubscribe(); // Clean up observer
+
+    return () => unsubscribe();
   }, []);
 
   // Logout function
-  const logoutUser = () => {
-    signOut(auth)
-      .then(() => {
-        setCurrentUser(null);
-        navigate('/'); // Redirect to login page
-      })
-      .catch((error) => {
-        console.error("Error logging out:", error);
-      });
-  };
+  const logoutUser = useCallback(async () => {
+    await signOut(auth);
+    setCurrentUser(null);
+    navigate("/login");
+    setMenuOpen(false); // Close menu after logging out
+  }, [navigate]);
 
   return (
-    <nav className="w-full h-[60px] bg-[#7749F8] flex justify-between items-center px-4 md:px-16 lg:px-[166px] shadow-md relative z-50">
-      {/* Brand Logo */}
-      <h1 className="text-white text-lg font-bold">
-        <Link to="/">MSK</Link>
+    <nav className="w-full bg-white shadow-md flex justify-between items-center px-6 py-4 relative">
+      {/* 📌 Logo */}
+      <h1 className="text-blue-600 text-lg font-bold">
+        <Link to="/">ScrollLink</Link>
       </h1>
 
-      {/* Mobile Menu Button */}
-      <div className="md:hidden">
-        <button
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="text-white focus:outline-none"
-        >
-          {isMenuOpen ? (
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          ) : (
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          )}
-        </button>
+      {/* 🔍 Search Bar (Hidden on mobile) */}
+      <div className="hidden md:block flex-1 mx-4">
+        <input
+          type="text"
+          placeholder="Search something here..."
+          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+          aria-label="Search"
+        />
       </div>
 
-      {/* Desktop Menu */}
-      <div className="hidden md:flex items-center ml-auto space-x-6 ">
-        {currentUser ? (
-          <div className="relative">
-            {/* User Icon and Dropdown */}
-            <button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex items-center space-x-2 text-white hover:text-gray-200 transition"
-            >
-              <img
-                src={currentUser.photoURL || "https://i.ibb.co/yVJBYFG/businessman-character-avatar-isolated-24877-60111.jpg"}
-                alt="User Avatar"
-                className="w-8 h-8 rounded-full border-2 border-white"
-              />
-              <span className="font-medium">{currentUser.displayName || "User"}</span>
-            </button>
-
-            {/* Dropdown Menu */}
-            {isDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg z-10">
-                <Link
-                  to="/"
-                  className="block px-4 py-2 text-sm text-gray-800 hover:bg-gray-200"
-                  onClick={() => setIsDropdownOpen(false)}
-                >
-                  Home
-                </Link>
-                <button
-                  onClick={() => {
-                    logoutUser();
-                    setIsDropdownOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-800 hover:bg-gray-200"
-                >
-                  Log out
-                </button>
-              </div>
-            )}
-          </div>
-        ) : (
-          <Link
-            to="/login"
-            className="text-white hover:text-gray-200 transition duration-200"
+      {/* 🧑 User Authentication Section */}
+      {loading ? (
+        <span className="text-gray-500">Loading...</span>
+      ) : currentUser ? (
+        <div className="flex items-center space-x-4">
+          <img
+            src={currentUser.photo}
+            alt="User Avatar"
+            className="w-10 h-10 rounded-full border border-gray-300"
+          />
+          <span className="text-gray-700 font-medium">{currentUser.name}</span>
+          <button
+            onClick={logoutUser}
+            className="text-red-500 text-sm font-medium hover:underline"
           >
-            Login
-          </Link>
-        )}
-      </div>
+            Logout
+          </button>
+        </div>
+      ) : (
+        <Link to="/login" className="text-blue-500 font-medium hover:underline">
+          Login
+        </Link>
+      )}
 
-      {/* Mobile Menu */}
-      <div
-        className={`absolute top-[60px] left-0 right-0 bg-[#7749F8] p-6 transform transition-all duration-500 ease-in-out ${isMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full'
-          } md:hidden`}
-        style={{ visibility: isMenuOpen ? 'visible' : 'hidden' }}
+      {/* 🍔 Mobile Menu Toggle */}
+      <button
+        className="md:hidden text-gray-700 text-xl ml-4"
+        onClick={() => setMenuOpen((prev) => !prev)}
+        aria-label="Toggle Menu"
       >
-        {currentUser ? (
-          <>
+        {menuOpen ? <FaTimes /> : <FaBars />}
+      </button>
+
+      {/* 📜 Mobile Dropdown Menu */}
+      {menuOpen && (
+        <div className="absolute top-16 right-6 bg-white shadow-lg rounded-lg p-4 flex flex-col space-y-4 z-50">
+          {currentUser ? (
+            <>
+              <img
+                src={currentUser.photo}
+                alt="User Avatar"
+                className="w-12 h-12 rounded-full border border-gray-300"
+              />
+              <span className="text-gray-700 font-medium">{currentUser.name}</span>
+              <button
+                onClick={logoutUser}
+                className="text-red-500 text-sm font-medium hover:underline"
+              >
+                Logout
+              </button>
+            </>
+          ) : (
             <Link
-              to="/"
-              className="block text-white py-2 hover:text-gray-200 transition duration-200"
-              onClick={() => setIsMenuOpen(false)}
+              to="/login"
+              className="text-blue-500 font-medium hover:underline"
+              onClick={() => setMenuOpen(false)}
             >
-              Home
+              Login
             </Link>
-            <button
-              onClick={() => {
-                logoutUser();
-                setIsMenuOpen(false);
-              }}
-              className="block text-white py-2 hover:text-gray-200 transition duration-200"
-            >
-              Sign Out
-            </button>
-          </>
-        ) : (
-          <Link
-            to="/login"
-            className="block text-white py-2 hover:text-gray-200 transition duration-200"
-            onClick={() => setIsMenuOpen(false)}
-          >
-            Login
-          </Link>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </nav>
   );
 };
