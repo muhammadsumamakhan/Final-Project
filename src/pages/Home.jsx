@@ -1,6 +1,6 @@
 import React from 'react';
 import LeftSideBar from '../components/LeftSideBar';
-import MiddleBar from '../components/MiddleBar';
+import MiddleBar from '../components/MiddleBar'
 import RightSideBarFirst from '../components/RightSideBarFirst';
 
 
