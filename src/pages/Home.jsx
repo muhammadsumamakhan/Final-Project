@@ -6,7 +6,7 @@ import RightSideBarFirst from '../components/RightSideBarFirst';
 
 const Home = () => {
   return (
-    <div className="bg-gray-100 min-h-screen flex">
+    <div className="bg-gray-100 min-h-screen flex pt-20">
       {/* Left Sidebar */}
       <div className="w-1/4 bg-white shadow-lg p-4 h-screen overflow-y-auto">
         <LeftSideBar />
